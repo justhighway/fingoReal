@@ -81,7 +81,6 @@ const GetUserDataScreen = ({ navigation, route }) => {
         placeholder="월급"
         value={income}
         onChangeText={setIncome}
-        keyboardType="numeric"
       />
 
       <TextInput
@@ -89,7 +88,6 @@ const GetUserDataScreen = ({ navigation, route }) => {
         placeholder="고정비"
         value={fixedCost}
         onChangeText={setFixedCost}
-        keyboardType="numeric"
       />
 
       <TextInput
@@ -97,7 +95,6 @@ const GetUserDataScreen = ({ navigation, route }) => {
         placeholder="목표 저축액"
         value={savings}
         onChangeText={setSavings}
-        keyboardType="numeric"
       />
 
       <View style={styles.dateContainer}>

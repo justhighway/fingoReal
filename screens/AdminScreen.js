@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button } from "react-native";
+import { View, Text, Button, TouchableOpacity } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import {
   onSnapshot,
@@ -7,12 +7,11 @@ import {
   doc,
   getDoc,
   setDoc,
-  addDoc,
-  serverTimestamp,
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
+import * as Notifications from "expo-notifications";
 
 const AdminScreen = () => {
   const navigation = useNavigation();
@@ -33,9 +32,8 @@ const AdminScreen = () => {
   }, []);
 
   const generateRandomData = () => {
-    const randomAmount = Math.floor(Math.random() * 1000) + 1000; // 최소 1000 이상의 랜덤한 값
-    const roundedAmount = Math.round(randomAmount / 100) * 100; // 100원 단위로 반올림
-
+    const randomAmount = Math.floor(Math.random() * 1000) + 1000;
+    const roundedAmount = Math.round(randomAmount / 100) * 100;
     const randomStoreName = `Store_${Math.floor(Math.random() * 100)}`;
     const randomTimestamp = new Date().toISOString();
 
@@ -55,26 +53,42 @@ const AdminScreen = () => {
       const generatedTransactionData = generateRandomData();
       const generatedPaymentData = generateRandomData();
 
-      // transactions 데이터 생성 및 저장
       const transactionsDocRef = doc(
         transactionsCollection,
         auth.currentUser.uid
       );
-      await updateDoc(transactionsDocRef, {
-        transactionHistory: arrayUnion(generatedTransactionData),
-      });
+      const transactionsDocSnapshot = await getDoc(transactionsDocRef);
 
-      // payments 데이터 생성 및 저장
+      if (transactionsDocSnapshot.exists()) {
+        await updateDoc(transactionsDocRef, {
+          transactionHistory: arrayUnion(generatedTransactionData),
+        });
+      } else {
+        // 문서가 없는 경우, 새로운 문서를 생성하고 업데이트
+        await setDoc(transactionsDocRef, {
+          transactionHistory: [generatedTransactionData],
+        });
+      }
+
       const paymentsDocRef = doc(paymentsCollection, auth.currentUser.uid);
-      await updateDoc(paymentsDocRef, {
-        paymentsHistory: arrayUnion(generatedPaymentData),
-      });
+      const paymentsDocSnapshot = await getDoc(paymentsDocRef);
+
+      if (paymentsDocSnapshot.exists()) {
+        await updateDoc(paymentsDocRef, {
+          paymentsHistory: arrayUnion(generatedPaymentData),
+        });
+      } else {
+        // 문서가 없는 경우, 새로운 문서를 생성하고 업데이트
+        await setDoc(paymentsDocRef, {
+          paymentsHistory: [generatedPaymentData],
+        });
+      }
 
       // userAllowedAmount 업데이트
       const updatedUserAllowedAmount =
         userAllowedAmount - generatedTransactionData.usedAmount;
       setUserAllowedAmount(updatedUserAllowedAmount);
-      await updateDoc(userDoc, {
+      await setDoc(userDoc, {
         userAllowedAmount: updatedUserAllowedAmount,
       });
 
@@ -84,11 +98,19 @@ const AdminScreen = () => {
     }
   };
 
+  const schedulePushNotification = async () => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: "데이터 생성됨",
+        body: "데이터가 성공적으로 생성되었습니다!",
+      },
+      trigger: { seconds: 2 },
+    });
+  };
+
   return (
     <View>
-      <Text>Admin Screen</Text>
-      <Text>{`User Allowed Amount: ${userAllowedAmount}`}</Text>
-      <Button title="Generate Data" onPress={generateAndSaveData} />
+      <Button title="가상 데이터 생성" onPress={generateAndSaveData} />
     </View>
   );
 };

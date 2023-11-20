@@ -1,9 +1,17 @@
-// HomeScreen.js:
 import React, { useEffect, useState } from "react";
-import { View, Text, Button } from "react-native";
+import { View, Text, Button, StyleSheet } from "react-native";
 import { useNavigation } from "@react-navigation/native";
-import { onSnapshot, collection, doc, getDoc } from "firebase/firestore";
+import {
+  onSnapshot,
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  arrayUnion,
+} from "firebase/firestore";
 import { db, auth } from "../../firebaseConfig";
+import { Notifications } from "expo";
+import AdminScreen from "../AdminScreen";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
@@ -59,35 +67,63 @@ const HomeScreen = () => {
     };
   }, []);
 
+  const handleNotification = async () => {
+    try {
+      const { status } = await Permissions.askAsync(Permissions.NOTIFICATIONS);
+
+      if (status === "granted") {
+        await Notifications.presentNotificationAsync({
+          title: "Notification Title",
+          body: "Notification Body",
+        });
+      }
+    } catch (error) {
+      console.error("Error presenting notification:", error.message);
+    }
+  };
+
   return (
-    <View>
-      <Text>{`User Allowed Amount: ${userAllowedAmount}`}</Text>
-      <Button
-        title="Go to Calendar Screen"
-        onPress={() => navigation.navigate("CalendarScreen")}
-      />
+    <View style={styles.container}>
+      <Text
+        style={{
+          fontSize: 24,
+          fontWeight: "bold",
+          marginBottom: 20,
+          borderBottomWidth: 2,
+          borderBottomColor: "black",
+        }}
+      >{`사용 가능한 금액: ${userAllowedAmount.toLocaleString()}`}</Text>
       <View>
-        <Text>Transactions:</Text>
+        <Text>출금내역:</Text>
         {transactions.map((transaction) => (
           <View key={transaction.id}>
-            <Text>{`Withdrawer: ${transaction.withDrawerName}`}</Text>
-            <Text>{`Used Amount: ${transaction.usedAmount}`}</Text>
-            <Text>{`Timestamp: ${transaction.timestamp}`}</Text>
+            <Text>{`출금자명: ${transaction.storeName}`}</Text>
+            <Text>{`출금액: ${transaction.usedAmount}`}</Text>
+            <Text>{`출금시간: ${transaction.timestamp}`}</Text>
           </View>
         ))}
       </View>
       <View>
-        <Text>Payments:</Text>
+        <Text>카드승인내역:</Text>
         {payments.map((payment) => (
           <View key={payment.id}>
-            <Text>{`Store Name: ${payment.storeName}`}</Text>
-            <Text>{`Used Amount: ${payment.usedAmount}`}</Text>
-            <Text>{`Timestamp: ${payment.timestamp}`}</Text>
+            <Text>{`결제처: ${payment.storeName}`}</Text>
+            <Text>{`결제금액: ${payment.usedAmount}`}</Text>
+            <Text>{`결제시간: ${payment.timestamp}`}</Text>
           </View>
         ))}
       </View>
+      <AdminScreen />
     </View>
   );
 };
 
 export default HomeScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+});

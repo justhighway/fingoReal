@@ -22,6 +22,7 @@ const SignInScreen = ({ navigation }) => {
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
       navigation.replace("MainDrawer", { uid: user.uid });
+      console.log("로그인 성공! 유저 정보:", user);
     } catch (error) {
       Alert.alert("Error", "로그인에 실패했습니다.");
     }

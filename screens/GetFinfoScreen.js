@@ -18,11 +18,11 @@ const GetFinfoScreen = ({ navigation, route }) => {
       const hashedCardPassword = await getHashedValue(cardPassword);
 
       const accountDocRef = await addAccountToFirestore(
-        accountNumber,
+        hashedAccountNumber,
         hashedAccountPassword
       );
       const cardDocRef = await addCardToFirestore(
-        cardNumber,
+        hashedCardNumber,
         hashedCardPassword
       );
 
@@ -40,14 +40,14 @@ const GetFinfoScreen = ({ navigation, route }) => {
   };
 
   const addAccountToFirestore = async (
-    accountNumber,
+    hashedAccountNumber,
     hashedAccountPassword
   ) => {
     const accountsCollectionRef = collection(db, "accounts");
     const accountDocRef = await addDoc(accountsCollectionRef, {
       ownUid: route.params.uid,
       accountBank: 1, // 예시로 A Bank
-      accountNo: accountNumber,
+      accountNo: hashedAccountNumber,
       accountPassword: hashedAccountPassword,
       transactionsId: "", // TODO: transactions.tid에 맞게 업데이트
       accountBalance: 0, // TODO: 적절한 초기 잔고 설정
@@ -55,12 +55,12 @@ const GetFinfoScreen = ({ navigation, route }) => {
     return accountDocRef;
   };
 
-  const addCardToFirestore = async (cardNumber, hashedCardPassword) => {
+  const addCardToFirestore = async (hashedCardNumber, hashedCardPassword) => {
     const cardsCollectionRef = collection(db, "cards");
     const cardDocRef = await addDoc(cardsCollectionRef, {
       ownUid: route.params.uid,
       cardCompany: 1, // 예시로 A Company
-      cardNo: cardNumber,
+      cardNo: hashedCardNumber,
       cardPassword: hashedCardPassword,
       paymentsId: "", // TODO: payments.pid에 맞게 업데이트
     });
