@@ -33,6 +33,7 @@
     "react-native-modal-datetime-picker": "^17.1.0",
     "react-native-randombytes": "^3.6.1",
     "react-native-reanimated": "~3.3.0",
+    "react-native-safe-area-context": "^4.7.4",
     "sha256": "^0.2.0"
   },
   "devDependencies": {
