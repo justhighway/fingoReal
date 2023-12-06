@@ -6,13 +6,11 @@ import {
   Button,
   Alert,
   StyleSheet,
-  Keyboard,
-  KeyboardAvoidingView,
   TouchableOpacity,
   SafeAreaView,
 } from "react-native";
-import { doc, updateDoc, setDoc, addDoc, collection } from "firebase/firestore";
-import { getHashedValue } from "../lib/authFunction"; // 이 부분은 나중에 라이브러리에서 가져오도록 설정하세요
+import { doc, updateDoc, addDoc, collection } from "firebase/firestore";
+import { getHashedValue } from "../lib/authFunction";
 import { db } from "../firebaseConfig";
 
 const GetFinfoScreen = ({ navigation, route }) => {
@@ -23,60 +21,61 @@ const GetFinfoScreen = ({ navigation, route }) => {
 
   const handleSaveData = async () => {
     try {
+      // 계좌 및 카드 번호 해싱
       const hashedAccountNumber = await getHashedValue(accountNumber);
       const hashedAccountPassword = await getHashedValue(accountPassword);
       const hashedCardNumber = await getHashedValue(cardNumber);
       const hashedCardPassword = await getHashedValue(cardPassword);
 
-      const accountDocRef = await addAccountToFirestore(
+      // Firestore에 계좌 및 카드 데이터 추가
+      const accountDocRef = await addDocumentToCollection(
+        "accounts",
+        route.params.uid,
         hashedAccountNumber,
         hashedAccountPassword
       );
-      const cardDocRef = await addCardToFirestore(
+      const cardDocRef = await addDocumentToCollection(
+        "cards",
+        route.params.uid,
         hashedCardNumber,
         hashedCardPassword
       );
 
-      // Firestore에 데이터 업데이트
+      // 유저 문서 업데이트
       await updateDoc(doc(db, "users", route.params.uid), {
-        userTargetedAid: accountDocRef.id,
-        userTargetedCid: cardDocRef.id,
+        userAccountID: accountDocRef.id,
+        userCardID: cardDocRef.id,
       });
 
+      // 성공적인 데이터 저장 알림 및 화면 전환
       Alert.alert("Success", "데이터가 성공적으로 저장되었습니다.");
+      console.log("저장된 Finfo 데이터:");
       navigation.navigate("GetUserData", { uid: route.params.uid });
     } catch (error) {
+      console.error(error);
       Alert.alert("Error", "데이터 저장에 실패했습니다.");
+      console.log("데이터 저장 실패:", error);
     }
   };
 
-  const addAccountToFirestore = async (
-    hashedAccountNumber,
-    hashedAccountPassword
-  ) => {
-    const accountsCollectionRef = collection(db, "accounts");
-    const accountDocRef = await addDoc(accountsCollectionRef, {
-      ownUid: route.params.uid,
-      accountBank: 1, // 예시로 A Bank
-      accountNo: hashedAccountNumber,
-      accountPassword: hashedAccountPassword,
-      transactionsId: "", // TODO: transactions.tid에 맞게 업데이트
-      accountBalance: 0, // TODO: 적절한 초기 잔고 설정
-    });
-    return accountDocRef;
-  };
+  // Firestore에 데이터 추가 함수 일반화
+const addDocumentToCollection = async (
+  collectionName,
+  ownUid,
+  hashedAccountNumber,
+  hashedAccountPassword
+) => {
+  const collectionRef = collection(db, collectionName);
+  const documentRef = await addDoc(collectionRef, {
+    ownUid: ownUid,
+    accountNo: hashedAccountNumber,
+    accountPassword: hashedAccountPassword,
+    transactionsId: "", // TODO: transactions.tid에 맞게 업데이트
+    accountBalance: 0, // TODO: 적절한 초기 잔고 설정
+  });
 
-  const addCardToFirestore = async (hashedCardNumber, hashedCardPassword) => {
-    const cardsCollectionRef = collection(db, "cards");
-    const cardDocRef = await addDoc(cardsCollectionRef, {
-      ownUid: route.params.uid,
-      cardCompany: 1, // 예시로 A Company
-      cardNo: hashedCardNumber,
-      cardPassword: hashedCardPassword,
-      paymentsId: "", // TODO: payments.pid에 맞게 업데이트
-    });
-    return cardDocRef;
-  };
+  return documentRef;
+};
 
   return (
     <SafeAreaView style={styles.container}>
@@ -91,35 +90,23 @@ const GetFinfoScreen = ({ navigation, route }) => {
         </Text>
       </View>
       <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="계좌번호"
-          value={accountNumber}
-          onChangeText={setAccountNumber}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="계좌비밀번호"
-          value={accountPassword}
-          onChangeText={setAccountPassword}
-          secureTextEntry
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="카드번호"
-          value={cardNumber}
-          onChangeText={setCardNumber}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="카드비밀번호"
-          value={cardPassword}
-          onChangeText={setCardPassword}
-          secureTextEntry
-        />
+        {/* TextInput을 렌더링하는 함수 호출 */}
+        {renderTextInput("계좌번호", accountNumber, setAccountNumber, 16)}
+        {renderTextInput(
+          "계좌비밀번호",
+          accountPassword,
+          setAccountPassword,
+          4,
+          true
+        )}
+        {renderTextInput("카드번호", cardNumber, setCardNumber, 16)}
+        {renderTextInput(
+          "카드비밀번호",
+          cardPassword,
+          setCardPassword,
+          4,
+          true
+        )}
       </View>
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveData}>
@@ -127,6 +114,26 @@ const GetFinfoScreen = ({ navigation, route }) => {
         </TouchableOpacity>
       </View>
     </SafeAreaView>
+  );
+};
+
+// TextInput을 렌더링하는 함수 정의
+const renderTextInput = (
+  placeholder,
+  value,
+  onChangeText,
+  maxLength,
+  isPassword = false
+) => {
+  return (
+    <TextInput
+      style={styles.input}
+      placeholder={placeholder}
+      value={value}
+      maxLength={maxLength}
+      onChangeText={onChangeText}
+      secureTextEntry={isPassword}
+    />
   );
 };
 

@@ -8,7 +8,10 @@ const Drawer = createDrawerNavigator();
 
 const MainDrawer = () => {
   return (
-    <Drawer.Navigator initialRouteName="HomeStack">
+    <Drawer.Navigator
+      initialRouteName="HomeStack"
+      screenOptions={{ headerShown: false }}
+    >
       <Drawer.Screen name="HomeStack" component={HomeStack} />
       <Drawer.Screen name="Admin" component={AdminScreen} />
     </Drawer.Navigator>

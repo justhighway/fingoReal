@@ -8,10 +8,16 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth, db } from "../firebaseConfig";
+
+const shadow = {
+  shadowColor: "gray",
+  shadowOpacity: 0.3,
+  shadowOffset: { width: 0, height: 1 },
+  shadowRadius: 0.8,
+};
 
 const SignUpScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
@@ -26,24 +32,31 @@ const SignUpScreen = ({ navigation }) => {
       );
       const user = userCredential.user;
 
-      await setDoc(doc(db, "users", user.uid), {
-        uid: user.uid,
-        userEmail: email,
-        userTargetedAid: "",
-        userTargetedCid: "",
-        userAllowedAmout: 0,
-        userIncome: 0,
-        userFixedCost: 0,
-        userSavings: 0,
-        userTargetDate: null,
-      });
-
-      await AsyncStorage.setItem("user", JSON.stringify(user));
+      await initializeUserDocument(user.uid, email);
 
       navigation.replace("GetFinfo", { uid: user.uid });
+      console.log(`${user.uid} 계정에 데이터 저장 성공!`);
     } catch (error) {
       Alert.alert("Error", "회원가입에 실패했습니다.");
+      console.log("회원가입 실패:", error);
     }
+  };
+
+  const initializeUserDocument = async (uid, userEmail) => {
+    const userData = {
+      uid: uid,
+      userEmail: userEmail,
+      userAccountID: "",
+      userCardID: "",
+      userAllowedAmout: 0,
+      userIncome: 0,
+      userFixedCost: 0,
+      userSavings: 0,
+      userTargetDate: null,
+    };
+
+    const userDocRef = doc(db, "users", uid);
+    await setDoc(userDocRef, userData);
   };
 
   return (
@@ -101,10 +114,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "bold",
     color: "#38eff2",
-    shadowColor: "gray",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 0.8,
+    ...shadow,
   },
   input: {
     width: "90%",
@@ -114,10 +124,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
     borderRadius: 14,
     padding: 12,
-    shadowColor: "gray",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 2 },
-    shadowRadius: 0.8,
+    ...shadow,
   },
   loginButton: {
     width: "90%",
@@ -127,18 +134,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#38eff2",
-    shadowColor: "gray",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 0.4,
+    ...shadow,
   },
   loginText: {
     color: "white",
     fontSize: 20,
-    shadowColor: "gray",
-    shadowOpacity: 0.3,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 0.4,
+    ...shadow,
   },
 });
 

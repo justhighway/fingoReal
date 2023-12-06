@@ -25,8 +25,8 @@ const RootStack = () => {
           <>
             <Stack.Screen name="SignIn" component={SignInScreen} />
             <Stack.Screen name="SignUp" component={SignUpScreen} />
-            <Stack.Screen name="GetFinfo" component={GetFinfoScreen} />
             <Stack.Screen name="GetUserData" component={GetUserDataScreen} />
+            <Stack.Screen name="GetFinfo" component={GetFinfoScreen} />
             <Stack.Screen name="MainDrawer" component={MainDrawer} />
           </>
         )}

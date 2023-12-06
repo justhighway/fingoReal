@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Button, TouchableOpacity } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { View, Button } from "react-native";
 import {
   collection,
   doc,
@@ -10,10 +9,8 @@ import {
   arrayUnion,
 } from "firebase/firestore";
 import { db, auth } from "../firebaseConfig";
-import * as Notifications from "expo-notifications";
 
-const AdminScreen = () => {
-  const navigation = useNavigation();
+const GenerateRandomData = () => {
   const [userAllowedAmount, setUserAllowedAmount] = useState(0);
 
   useEffect(() => {
@@ -104,4 +101,4 @@ const AdminScreen = () => {
   );
 };
 
-export default AdminScreen;
+export default GenerateRandomData;

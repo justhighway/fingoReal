@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+// GetUserDataScreen.js
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,46 +9,48 @@ import {
   SafeAreaView,
   TouchableOpacity,
 } from "react-native";
-import DateTimePickerModal from "react-native-modal-datetime-picker"; // 추가
-
+import DateTimePickerModal from "react-native-modal-datetime-picker";
 import { runTransaction } from "firebase/firestore";
 import { doc } from "firebase/firestore";
 import { db } from "../firebaseConfig";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const GetUserDataScreen = ({ navigation, route }) => {
   const [income, setIncome] = useState("");
   const [fixedCost, setFixedCost] = useState("");
   const [savings, setSavings] = useState("");
   const [targetDate, setTargetDate] = useState(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [allowedAmountText, setAllowedAmountText] = useState(""); // 추가
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [allowedAmount, setAllowedAmount] = useState(null);
 
-  // Date Picker 관련 함수
-  const showDatePickerModal = () => {
-    setShowDatePicker(true);
-  };
+  const year = targetDate.getFullYear();
+  const month = targetDate.getMonth() + 1;
+  const day = targetDate.getDate();
 
-  const hideDatePickerModal = () => {
-    setShowDatePicker(false);
-  };
+  useEffect(() => {
+    // 모든 입력 값이 채워지고, 올바른 형식이라면 가용 예산을 계산하여 업데이트
+    if (income && fixedCost && savings && targetDate instanceof Date) {
+      const calculatedAllowedAmount = calculateAllowedAmount(
+        parseInt(income),
+        parseInt(fixedCost),
+        parseInt(savings),
+        targetDate
+      );
+      setAllowedAmount(calculatedAllowedAmount);
+    } else {
+      setAllowedAmount(null);
+    }
+  }, [income, fixedCost, savings, targetDate]);
 
-  const handleDateConfirm = (date) => {
-    setTargetDate(date);
-    hideDatePickerModal();
-  };
-
-  // 데이터 계산 및 저장 함수
   const calculateAllowedAmount = (income, fixedCost, savings, targetDate) => {
     const oneDayMilliseconds = 24 * 60 * 60 * 1000;
     const remainingDays = Math.ceil(
       (targetDate.getTime() - new Date().getTime()) / oneDayMilliseconds
     );
-    console.log(`오늘부터 ${targetDate}까지 남은 날짜: ${remainingDays}`);
-
-    const allowedAmount =
+    const calculatedAllowedAmount =
       Math.round((income - fixedCost - savings) / remainingDays / 10) * 10;
 
-    return allowedAmount;
+    return calculatedAllowedAmount;
   };
 
   const handleSaveData = async () => {
@@ -60,12 +63,14 @@ const GetUserDataScreen = ({ navigation, route }) => {
           throw new Error("User data not found");
         }
 
-        const allowedAmount = calculateAllowedAmount(
-          parseInt(income),
-          parseInt(fixedCost),
-          parseInt(savings),
-          targetDate
-        );
+        if (
+          !income ||
+          !fixedCost ||
+          !savings ||
+          !(targetDate instanceof Date)
+        ) {
+          throw new Error("Invalid values");
+        }
 
         transaction.update(userRef, {
           userIncome: parseInt(income),
@@ -74,18 +79,22 @@ const GetUserDataScreen = ({ navigation, route }) => {
           userTargetDate: targetDate,
           userAllowedAmount: allowedAmount,
         });
-
-        // 데이터 저장 후 계산된 가용예산을 텍스트로 업데이트
-        setAllowedAmountText(
-          `${targetDate}까지 하루 사용 가능 금액: ${allowedAmount}`
-        );
       });
 
       Alert.alert("Success", "데이터가 성공적으로 저장되었습니다.");
       navigation.replace("MainDrawer");
     } catch (error) {
+      Alert.alert("Error", "올바른 값을 입력해주세요!");
       console.log(error);
     }
+  };
+
+  const showDatePicker = () => setDatePickerVisibility(true);
+  const hideDatePicker = () => setDatePickerVisibility(false);
+
+  const handleConfirm = (date) => {
+    setTargetDate(date);
+    hideDatePicker();
   };
 
   return (
@@ -119,39 +128,46 @@ const GetUserDataScreen = ({ navigation, route }) => {
           value={savings}
           onChangeText={setSavings}
         />
-
-        {/* 날짜 선택 버튼 */}
-        <TouchableOpacity onPress={showDatePickerModal}>
+        {/* 날짜 입력란 추가 */}
+        <TouchableOpacity style={styles.input} onPress={showDatePicker}>
           <View style={styles.dateInput}>
             <Text
               style={styles.dateInputText}
-            >{`목표 날짜: ${targetDate.toDateString()}`}</Text>
+            >{`${year}년 ${month}월 ${day}일`}</Text>
+            <MaterialCommunityIcons
+              name="calendar"
+              size={20}
+              color={"#278698"}
+            />
           </View>
         </TouchableOpacity>
-
-        {/* DateTimePickerModal */}
-        <DateTimePickerModal
-          isVisible={showDatePicker}
-          mode="date"
-          onConfirm={handleDateConfirm}
-          onCancel={hideDatePickerModal}
-          textColor="black"
-          locale="ko"
-        />
-      </View>
-      <View style={styles.buttonContainer}>
-        {/* 텍스트 조건에 따른 렌더링 */}
-        {allowedAmountText ? (
-          <Text style={styles.allowedAmountText}>{allowedAmountText}</Text>
+        {/* 하루 사용 가능 금액 렌더링 */}
+        {allowedAmount === null ? (
+          <Text style={styles.errorText}>값을 입력해주세요!</Text>
+        ) : allowedAmount !== null && !isNaN(allowedAmount) ? (
+          <View style={{ flexDirection: "row" }}>
+            <Text style={styles.allowedAmountText}>하루 사용 가능 금액: </Text>
+            <Text style={[styles.allowedAmountText, { fontWeight: "bold" }]}>
+              {`${allowedAmount.toLocaleString()}원`}
+            </Text>
+          </View>
         ) : (
           <Text style={styles.errorText}>올바른 값이 아니에요!</Text>
         )}
-
-        {/* 저장 버튼 */}
+      </View>
+      <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveData}>
           <Text style={styles.saveButtonText}>시작하기</Text>
         </TouchableOpacity>
       </View>
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="date"
+        textColor="black"
+        locale="ko"
+        onConfirm={handleConfirm}
+        onCancel={hideDatePicker}
+      />
     </SafeAreaView>
   );
 };
@@ -177,7 +193,7 @@ const styles = StyleSheet.create({
   amountText: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#38eff2",
+    color: "#29DEDE",
     marginBottom: 10,
   },
   titleText: {
@@ -189,6 +205,7 @@ const styles = StyleSheet.create({
     color: "gray",
   },
   input: {
+    fontSize: 16,
     width: "90%",
     height: 60,
     borderColor: "gray",
@@ -196,40 +213,36 @@ const styles = StyleSheet.create({
     marginBottom: 18,
     padding: 14,
     borderRadius: 16,
+    justifyContent: "center",
     shadowColor: "gray",
-    shadowOpacity: 0.4,
+    shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 0.8,
   },
   dateInput: {
-    width: "90%",
-    height: 60,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 18,
-    padding: 14,
-    borderRadius: 16,
-    shadowColor: "gray",
-    shadowOpacity: 0.4,
-    shadowOffset: { width: 0, height: 1 },
-    shadowRadius: 0.8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
   dateInputText: {
     fontSize: 16,
   },
-  resultContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  resultText: {
+  allowedAmountText: {
     fontSize: 16,
-    color: "gray",
+    color: "#20884B",
+    marginTop: "10%",
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#A93800",
+    marginTop: "10%",
   },
   saveButton: {
     width: "90%",
     height: 60,
     borderRadius: 16,
-    backgroundColor: "#38eff2",
+    backgroundColor: "#29DEDE",
     marginBottom: 20,
     justifyContent: "center",
     alignItems: "center",
@@ -239,29 +252,14 @@ const styles = StyleSheet.create({
     shadowRadius: 0.8,
   },
   saveButtonText: {
-    fontSize: 20,
+    fontSize: 16,
+    fontWeight: "bold",
     color: "white",
+
     shadowColor: "gray",
     shadowOpacity: 0.2,
     shadowOffset: { width: 0, height: 1 },
     shadowRadius: 0.6,
-  },
-  datePickerText: {
-    fontSize: 16,
-    color: "#38eff2",
-    marginBottom: 18,
-  },
-
-  allowedAmountText: {
-    fontSize: 16,
-    color: "green",
-    marginBottom: 18,
-  },
-
-  errorText: {
-    fontSize: 16,
-    color: "red",
-    marginBottom: 18,
   },
 });
 
